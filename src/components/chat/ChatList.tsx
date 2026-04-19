@@ -5,6 +5,15 @@ import { Search } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
+const formatPhone = (jid: string) => {
+  if (!jid) return '';
+  const num = jid.split('@')[0];
+  if (num.startsWith('55') && num.length >= 12) {
+    return `+55 (${num.slice(2, 4)}) ${num.slice(4, 9)}-${num.slice(9)}`;
+  }
+  return `+${num}`;
+};
+
 function ChatItem({ chat, instance, isSelected, onClick }: { chat: any, instance: string, isSelected: boolean, onClick: () => void }) {
   const [pic, setPic] = useState(chat.mergedPic || chat.avatar_url || chat.picUrl);
   const jid = chat.remoteJid || chat.id || chat.remote_jid;
@@ -14,22 +23,15 @@ function ChatItem({ chat, instance, isSelected, onClick }: { chat: any, instance
   const displayName = chat.mergedName || chat.contact_name || chat.name || chat.pushName || chat.verifiedName || formatPhone(jid);
 
   useEffect(() => {
-    if (!pic && jid) {
+    let active = true;
+    if (!pic && jid && instance) {
        // Tenta buscar a foto proativamente se nao existir
        evolutionApi.getProfilePic(instance, jid).then(res => {
-         if (res && res.picture) setPic(res.picture);
+         if (active && res && res.picture) setPic(res.picture);
        }).catch(() => {});
     }
+    return () => { active = false; };
   }, [jid, instance, pic]);
-
-  const formatPhone = (jid: string) => {
-    if (!jid) return '';
-    const num = jid.split('@')[0];
-    if (num.startsWith('55') && num.length >= 12) {
-      return `+55 (${num.slice(2, 4)}) ${num.slice(4, 9)}-${num.slice(9)}`;
-    }
-    return `+${num}`;
-  };
 
   const ts = chat.conversationTimestamp || chat.updatedAt || chat.last_message_at;
   let time = '';
@@ -166,15 +168,6 @@ export default function ChatList({ instance, selectedChat, onSelectChat }: { ins
     const name = (c.contact_name || c.name || c.pushName || c.remoteJid || c.remote_jid || '').toLowerCase();
     return name.includes(term);
   });
-
-  const formatPhone = (jid: string) => {
-    if (!jid) return '';
-    const num = jid.split('@')[0];
-    if (num.startsWith('55') && num.length >= 12) {
-      return `+55 (${num.slice(2, 4)}) ${num.slice(4, 9)}-${num.slice(9)}`;
-    }
-    return `+${num}`;
-  };
 
   if (loading) {
      return <div className="p-4 text-center text-sm text-text-secondary">Puxando histórico da Evolution...</div>;
