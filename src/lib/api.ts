@@ -15,6 +15,7 @@ export const evolutionApi = {
   // These reads won't be used by UI anymore since Supabase takes over, but kept for Fallback
   getChats: (instance: string) => callApi(`/chat/findChats/${instance}`, 'POST', {}),
   getContacts: (instance: string) => callApi(`/chat/findContacts/${instance}`, 'POST', {}),
+  getProfilePic: (instance: string, number: string) => callApi(`/chat/getBase64ProfilePicture/${instance}`, 'POST', { number }),
   
   getMessages: (instance: string, remoteJid: string, page = 1) => 
      callApi(`/chat/findMessages/${instance}`, 'POST', { where: { remoteJid }, page, limit: 50 }),

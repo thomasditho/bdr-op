@@ -5,6 +5,79 @@ import { Search } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
+function ChatItem({ chat, instance, isSelected, onClick }: { chat: any, instance: string, isSelected: boolean, onClick: () => void }) {
+  const [pic, setPic] = useState(chat.mergedPic || chat.avatar_url || chat.picUrl);
+  const jid = chat.remoteJid || chat.id || chat.remote_jid;
+  const rawNumber = jid?.split('@')[0] || '';
+  
+  // Melhoria na Resolucao de Nome: Tenta priorizar nomes reais
+  const displayName = chat.mergedName || chat.contact_name || chat.name || chat.pushName || chat.verifiedName || formatPhone(jid);
+
+  useEffect(() => {
+    if (!pic && jid) {
+       // Tenta buscar a foto proativamente se nao existir
+       evolutionApi.getProfilePic(instance, jid).then(res => {
+         if (res && res.picture) setPic(res.picture);
+       }).catch(() => {});
+    }
+  }, [jid, instance, pic]);
+
+  const formatPhone = (jid: string) => {
+    if (!jid) return '';
+    const num = jid.split('@')[0];
+    if (num.startsWith('55') && num.length >= 12) {
+      return `+55 (${num.slice(2, 4)}) ${num.slice(4, 9)}-${num.slice(9)}`;
+    }
+    return `+${num}`;
+  };
+
+  const ts = chat.conversationTimestamp || chat.updatedAt || chat.last_message_at;
+  let time = '';
+  if (ts) {
+    try {
+      const numTs = Number(ts);
+      const dateObj = Number.isNaN(numTs) 
+        ? new Date(ts) 
+        : new Date(numTs * (String(numTs).length > 11 ? 1 : 1000));
+      if (!Number.isNaN(dateObj.getTime())) time = format(dateObj, 'HH:mm');
+    } catch (e) {}
+  }
+
+  return (
+    <div 
+      onClick={onClick}
+      className={clsx(
+        "flex items-center gap-3 py-4 px-6 cursor-pointer border-b border-white/[0.03] transition-colors",
+        isSelected ? "bg-white/5 border-l-[3px] border-l-accent-green pl-[21px]" : "hover:bg-white/[0.02]"
+      )}
+    >
+      <div className="w-12 h-12 rounded-full bg-[#3d3d45] overflow-hidden flex-shrink-0 relative">
+        {pic ? (
+          <img src={pic} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-text-secondary font-medium text-lg">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-baseline mb-1">
+          <h3 className="text-[14px] font-semibold text-text-primary truncate pr-2" title={displayName}>{displayName}</h3>
+          {time && <span className="text-[11px] text-text-secondary flex-shrink-0">{time}</span>}
+        </div>
+        <p className="text-[13px] text-text-secondary truncate">
+          <span className="opacity-80 font-mono text-[11px]">{formatPhone(jid)}</span>
+        </p>
+      </div>
+      {(chat.unreadCount > 0 || chat.unread_count > 0) && (
+        <div className="bg-accent-green text-black text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 min-w-[20px] text-center">
+          {chat.unreadCount || chat.unread_count}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChatList({ instance, selectedChat, onSelectChat }: { instance: string, selectedChat: any, onSelectChat: (chat: any) => void }) {
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,72 +195,21 @@ export default function ChatList({ instance, selectedChat, onSelectChat }: { ins
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto">
-        {filtered.map(chat => {
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {filtered.map((chat, idx) => {
           const jid = chat.remoteJid || chat.id || chat.remote_jid;
           if (!jid) return null;
 
           const isSelected = selectedChat?.id === chat.id || selectedChat?.remoteJid === jid;
-          const ts = chat.conversationTimestamp || chat.updatedAt || chat.last_message_at;
-          
-          let time = '';
-          if (ts) {
-            try {
-              const numTs = Number(ts);
-              const dateObj = Number.isNaN(numTs) 
-                ? new Date(ts) 
-                : new Date(numTs * (String(numTs).length > 11 ? 1 : 1000));
-                
-              if (!Number.isNaN(dateObj.getTime())) {
-                time = format(dateObj, 'HH:mm');
-              }
-            } catch (e) {}
-          }
 
-          const rawNumber = jid.split('@')[0];
-          
-          let rawName = chat.mergedName;
-          if (!rawName && chat.messages && chat.messages.length > 0) {
-              const firstMsg = chat.messages[0];
-              rawName = firstMsg.pushName || firstMsg.profileName || firstMsg.name;
-          }
-          
-          const displayName = (rawName && rawName !== rawNumber) ? rawName : formatPhone(jid);
-          const finalPic = chat.mergedPic;
-          
           return (
-            <div 
-              key={jid}
+            <ChatItem 
+              key={jid || idx}
+              chat={chat}
+              instance={instance}
+              isSelected={isSelected}
               onClick={() => onSelectChat(chat)}
-              className={clsx(
-                "flex items-center gap-3 py-4 px-6 cursor-pointer border-b border-white/[0.03] transition-colors",
-                isSelected ? "bg-white/5 border-l-[3px] border-l-accent-green pl-[21px]" : "hover:bg-white/[0.02]"
-              )}
-            >
-              <div className="w-12 h-12 rounded-full bg-[#3d3d45] overflow-hidden flex-shrink-0 relative">
-                {finalPic ? (
-                  <img src={finalPic} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-text-secondary font-medium text-lg">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-1">
-                  <h3 className="text-[14px] font-semibold text-text-primary truncate pr-2" title={displayName}>{displayName}</h3>
-                  {time && <span className="text-[11px] text-text-secondary flex-shrink-0">{time}</span>}
-                </div>
-                <p className="text-[13px] text-text-secondary truncate">
-                  <span className="opacity-80 font-mono text-[11px]">{formatPhone(jid)}</span>
-                </p>
-              </div>
-              {(chat.unreadCount > 0 || chat.unread_count > 0) && (
-                <div className="bg-accent-green text-black text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 min-w-[20px] text-center">
-                  {chat.unreadCount || chat.unread_count}
-                </div>
-              )}
-            </div>
+            />
           );
         })}
         {filtered.length === 0 && (
