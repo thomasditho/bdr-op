@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-main: #0c0c0e;
+  --color-bg-sidebar: #16161a;
+  --color-bg-panel: #1c1c21;
+  --color-bg-bubble: #2a2a32;
+  --color-accent-green: #00e676;
+  --color-text-primary: #f0f0f2;
+  --color-text-secondary: #94949e;
+  --color-border-dark: #2d2d35;
+  --color-msg-sent: #054d3b;
+  --color-msg-sent-text: #e9edef;
+}
+
+body, html {
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+}
