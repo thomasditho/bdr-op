@@ -44,12 +44,20 @@ export default function ChatList({ instance, selectedChat, onSelectChat }: { ins
           const list = Array.isArray(evoData) ? evoData : (evoData?.instances || Object.values(evoData || {}));
           
           if (!unmounted) {
-            setChats(list.map((c: any) => ({
-              ...c,
-              mergedName: c.name || c.pushName || c.id?.split('@')[0],
-              mergedPic: c.imgUrl || c.profilePictureUrl,
-              timestamp: c.conversationTimestamp || c.updatedAt
-            })));
+            setChats(list.map((c: any) => {
+              const jid = c.id || c.remoteJid || c.key?.remoteJid;
+              const rawNumber = jid?.split('@')[0] || '';
+              // Tenta pegar o nome mais amigavel da Evolution (name, pushName ou vcard)
+              const bestName = c.name || c.pushName || c.verifiedName || c.vcard?.name;
+              
+              return {
+                ...c,
+                remote_jid: jid,
+                mergedName: (bestName && bestName !== rawNumber) ? bestName : null,
+                mergedPic: c.imgUrl || c.profilePictureUrl || c.picUrl,
+                timestamp: c.conversationTimestamp || c.updatedAt
+              };
+            }));
           }
         }
       } catch (err) {

@@ -174,12 +174,12 @@ export default function ChatArea({ instance, chat }: { instance: string, chat: a
   };
 
   const rawNumber = jid?.split('@')[0] || '';
-  const rawName = chat.mergedName || chat.contact_name || chat.name || chat.pushName;
+  const rawName = chat.mergedName || chat.contact_name || chat.name || chat.pushName || chat.verifiedName;
   const displayName = (rawName && rawName !== rawNumber) 
     ? rawName 
     : formatPhone(jid || '');
   
-  const displayPic = chat.mergedPic || chat.avatar_url || chat.profilePictureUrl || chat.profile_picture_url;
+  const displayPic = chat.mergedPic || chat.avatar_url || chat.profilePictureUrl || chat.profile_picture_url || chat.imgUrl;
 
   return (
     <div className="flex flex-col h-full bg-transparent overflow-hidden">

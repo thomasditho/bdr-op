@@ -35,6 +35,28 @@ export default async function handler(req, res) {
     const isFromMe = messageData.key?.fromMe || false;
     const pushName = messageData.pushName || '';
 
+    // Tentar buscar o Perfil do WhatsApp (Foto e Nome Business) proativamente
+    let avatarUrl = '';
+    let businessName = '';
+
+    try {
+      const evoUrl = process.env.EVO_API_URL;
+      const evoKey = process.env.EVO_API_KEY || process.env.EVO_API_TOKEN;
+
+      // Chama a Evolution para buscar a foto e infos extras
+      const profilePromise = axios.post(`${evoUrl}/chat/getBase64ProfilePicture/${instanceName}`, {
+        number: remoteJid
+      }, { headers: { 'apikey': evoKey } });
+
+      const [profileResp] = await Promise.allSettled([profilePromise]);
+      
+      if (profileResp.status === 'fulfilled' && profileResp.value.data?.picture) {
+        avatarUrl = profileResp.value.data.picture;
+      }
+    } catch (e) {
+      console.error('Falha no enriquecimento proativo:', e.message);
+    }
+
     // Extrair conteudo
     let content = '';
     const msg = messageData.message || {};
@@ -59,6 +81,7 @@ export default async function handler(req, res) {
         instance_name: instanceName,
         remote_jid: remoteJid,
         contact_name: pushName,
+        avatar_url: avatarUrl,
         last_message_at: timestampStr
       }, { onConflict: 'instance_name, remote_jid' })
       .select('id')
