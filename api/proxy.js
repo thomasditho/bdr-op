@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       url,
       data: req.method === 'GET' ? undefined : req.body,
       headers: {
-        'apikey': process.env.EVO_API_KEY,
+        'apikey': process.env.EVO_API_KEY || process.env.EVO_API_TOKEN,
         'Content-Type': 'application/json'
       }
     });

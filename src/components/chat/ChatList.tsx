@@ -28,15 +28,30 @@ export default function ChatList({ instance, selectedChat, onSelectChat }: { ins
         
         if (unmounted) return;
 
-        // Formata os chats vindos do DB para o formato que o componente espera
-        const formatted = (dbChats || []).map((chat: any) => ({
-          ...chat,
-          mergedName: chat.contact_name,
-          mergedPic: chat.avatar_url,
-          timestamp: chat.last_message_at
-        }));
-
-        setChats(formatted);
+        if (dbChats && dbChats.length > 0) {
+          // Formata os chats vindos do DB para o formato que o componente espera
+          const formatted = dbChats.map((chat: any) => ({
+            ...chat,
+            mergedName: chat.contact_name,
+            mergedPic: chat.avatar_url,
+            timestamp: chat.last_message_at
+          }));
+          setChats(formatted);
+        } else {
+          // FALLBACK: Se o Supabase estiver vazio, busca direto na Evolution para nao ficar tela vazia
+          console.warn('Supabase empty, fetching directly from Evolution API...');
+          const evoData = await evolutionApi.getChats(instance);
+          const list = Array.isArray(evoData) ? evoData : (evoData?.instances || Object.values(evoData || {}));
+          
+          if (!unmounted) {
+            setChats(list.map((c: any) => ({
+              ...c,
+              mergedName: c.name || c.pushName || c.id?.split('@')[0],
+              mergedPic: c.imgUrl || c.profilePictureUrl,
+              timestamp: c.conversationTimestamp || c.updatedAt
+            })));
+          }
+        }
       } catch (err) {
         console.error('Error fetching chats from Supabase', err);
       } finally {
